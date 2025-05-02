@@ -5,18 +5,27 @@ import { NextResponse } from "next/server";
 import { verifyJwtToken } from "@/lib/jwt";
 import Blog from "@/models/Blog";
 
-export async function PUT(req, res) {
+export async function PUT(request, { params }) {
   await connect();
 
-  const id = res.params.id;
-  const accessToken = req.headers.get("authorization");
-  const token = accessToken.split(" ")[1];
+  // Await the params object first
+  const { id } = await params;
+  
+  const accessToken = request.headers.get("authorization");
+  
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: "Unauthorized (no token provided)" },
+      { status: 401 }
+    );
+  }
 
+  const token = accessToken.split(" ")[1];
   const decodedToken = verifyJwtToken(token);
 
-  if (!accessToken || !decodedToken) {
+  if (!decodedToken) {
     return NextResponse.json(
-      { error: "unauthorized (wrong or expired token)" },
+      { error: "Unauthorized (invalid or expired token)" },
       { status: 403 }
     );
   }
@@ -24,17 +33,29 @@ export async function PUT(req, res) {
   try {
     const blog = await Blog.findById(id);
 
-    if(blog.likes.includes(decodedToken._id)) {
-        blog.likes = blog.likes.filter(id => id.toString() !== decodedToken._id.toString());
+    if (!blog) {
+      return NextResponse.json(
+        { error: "Blog not found" },
+        { status: 404 }
+      );
+    }
+
+    // Toggle like
+    const userId = decodedToken._id;
+    if (blog.likes.includes(userId)) {
+      blog.likes = blog.likes.filter(id => id.toString() !== userId.toString());
     } else {
-        blog.likes.push(decodedToken._id)
+      blog.likes.push(userId);
     }
 
     await blog.save();
 
-
     return NextResponse.json(blog, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ message: "PUT error" }, {status: 500});
+    console.error("PUT error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -10,7 +10,7 @@ import Blog from "@/models/Blog";
 export async function PUT(req, { params }) {
   await connect();
 
-  const id = params.id;
+  const { id } =  await params;
 
   const accessToken = req.headers.get("authorization");
   if (!accessToken || !accessToken.startsWith("Bearer ")) {
@@ -60,7 +60,7 @@ export async function PUT(req, { params }) {
 export async function GET(req, { params }) {
   await connect();
 
-  const { id } = params;
+  const { id } =  await params;
 
   try {
     const blog = await Blog.findById(id)
@@ -89,7 +89,7 @@ export async function GET(req, { params }) {
 export async function DELETE(req, { params }) {
   await connect();
 
-  const id = params.id;
+  const {id} = await params;
 
   const accessToken = req.headers.get("authorization");
   if (!accessToken || !accessToken.startsWith("Bearer ")) {
